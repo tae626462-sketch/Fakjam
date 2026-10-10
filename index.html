@@ -1,0 +1,809 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>ฝากจำ</title>
+<meta name="description" content="ไม่ต้องจำทุกเรื่อง แค่จำไว้ว่าฝากไว้ที่นี่">
+<meta name="theme-color" content="#2B55CF">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="ฝากจำ">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&family=Sriracha&display=swap">
+<style>
+/* Layout: one-column phone app; every remembered thing is a coat-check ticket with a numbered stub; bottom tab bar. */
+:root{
+  --bg:#E9EEEC; --paper:#FFFFFF; --paper-2:#F5F8F7; --ink:#17232A; --muted:#5B6970; --line:#D3DCD9;
+  --accent:#2B55CF; --accent-ink:#FFFFFF; --stamp:#F2C23E; --stamp-ink:#3A2C00;
+  --ok:#1E8A5A; --warn:#B4610E; --danger:#C2383A;
+  --f-body:"IBM Plex Sans Thai",system-ui,-apple-system,"Segoe UI",Tahoma,sans-serif;
+  --f-hand:"Sriracha","IBM Plex Sans Thai",cursive;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --r:14px; --shadow:0 1px 0 rgba(23,35,42,.06),0 6px 18px -10px rgba(23,35,42,.25);
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){:root{
+  --bg:#10171B; --paper:#1A242A; --paper-2:#212D34; --ink:#E6ECEE; --muted:#97A6AD; --line:#2E3C43;
+  --accent:#86A2FF; --accent-ink:#0D1530; --stamp:#E3B43A; --stamp-ink:#2A1F00;
+  --ok:#5CCB98; --warn:#F0A65A; --danger:#F07A7C; --shadow:0 1px 0 rgba(0,0,0,.3),0 8px 20px -12px rgba(0,0,0,.7); color-scheme:dark}}
+
+*{box-sizing:border-box}
+html{padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.55;-webkit-font-smoothing:antialiased}
+img{max-width:100%}
+[hidden]{display:none!important}
+button,input,textarea,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:8px}
+.wrap{max-width:560px;margin:0 auto;padding-inline:16px;padding-block:0 120px}
+
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding-block:14px 10px;display:flex;align-items:flex-end;justify-content:space-between;gap:12px}
+.brand h1{font-family:var(--f-hand);font-weight:400;font-size:30px;line-height:1.1;margin:0}
+.brand p{margin:0;font-size:13px;color:var(--muted)}
+.gear{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);border:1px solid var(--line);background:var(--paper);border-radius:999px;padding:6px 11px;white-space:nowrap}
+.gear svg{width:16px;height:16px}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--muted)}
+.dot.on{background:var(--ok)}
+
+.tabs{position:fixed;left:0;right:0;bottom:0;z-index:6;background:var(--paper);border-top:1px solid var(--line);padding:8px 12px calc(8px + env(safe-area-inset-bottom,0px))}
+.tabs-in{max-width:560px;margin:0 auto;display:grid;grid-template-columns:1fr 1.25fr 1fr;gap:8px;align-items:center}
+.tab{background:none;border:0;padding:6px 4px;border-radius:12px;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:12px;color:var(--muted)}
+.tab svg{width:22px;height:22px}
+.tab[aria-current="page"]{color:var(--ink);font-weight:600}
+.tab.main{background:var(--accent);color:var(--accent-ink);flex-direction:row;justify-content:center;gap:8px;font-size:15px;font-weight:600;padding:12px 8px;border-radius:999px}
+.tab.main[aria-current="page"]{color:var(--accent-ink)}
+
+section.view{display:flex;flex-direction:column;gap:22px;padding-top:6px}
+.block{display:flex;flex-direction:column;gap:10px}
+.block-h{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.block-h h2{font-size:15px;font-weight:600;margin:0}
+.block-h span{font-size:12px;color:var(--muted)}
+.hint{font-size:13px;color:var(--muted);margin:0}
+.demo-note{display:flex;gap:10px;align-items:flex-start;background:var(--paper-2);border:1px dashed var(--line);border-radius:var(--r);padding:12px 14px;font-size:13.5px;color:var(--muted)}
+.demo-note b{color:var(--ink);font-weight:600}
+
+.ticket{position:relative;display:flex;min-width:0;background:var(--paper);border-radius:var(--r);box-shadow:var(--shadow)}
+.stub{flex:0 0 64px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:12px 4px;border-right:2px dashed var(--line);position:relative;color:var(--muted)}
+.stub::before,.stub::after{content:"";position:absolute;right:-9px;width:16px;height:16px;border-radius:50%;background:var(--bg)}
+.stub::before{top:-8px}.stub::after{bottom:-8px}
+.stub svg{width:22px;height:22px;color:var(--ink)}
+.stub .no{font-family:var(--f-mono);font-size:11px;font-weight:600;letter-spacing:.04em}
+.tbody{flex:1;min-width:0;padding:12px 14px;display:flex;flex-direction:column;gap:6px}
+.trow{display:flex;gap:10px;align-items:flex-start;justify-content:space-between;background:none;border:0;padding:0;text-align:left;color:inherit;width:100%}
+.tcol{min-width:0;display:flex;flex-direction:column;gap:5px}
+.ttitle{font-weight:600;font-size:16px;line-height:1.35;overflow-wrap:anywhere}
+.tmeta{font-size:13px;color:var(--muted);display:flex;flex-wrap:wrap;gap:4px 12px}
+.tmeta .t{font-family:var(--f-mono);font-size:12.5px;color:var(--ink)}
+.tnote{font-family:var(--f-hand);font-size:17px;line-height:1.35}
+.thumb{flex:0 0 56px;width:56px;height:56px;border-radius:10px;object-fit:cover;background:var(--paper-2);border:1px solid var(--line)}
+.kind{display:inline-block;font-size:11px;font-weight:600;letter-spacing:.06em;background:var(--stamp);color:var(--stamp-ink);padding:1px 8px;border-radius:4px;transform:rotate(-2deg);white-space:nowrap}
+.kind.demo{background:transparent;color:var(--muted);border:1px solid var(--line);transform:none}
+.acts{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid var(--line);background:var(--paper);border-radius:999px;padding:7px 13px;font-size:14px;font-weight:500;text-decoration:none;color:var(--ink);min-height:38px}
+.btn svg{width:17px;height:17px}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.ghost{border-color:transparent;background:transparent;color:var(--muted)}
+.btn.danger{color:var(--danger)}
+.btn.full{width:100%;padding:13px;font-size:16px;font-weight:600}
+.btn[disabled]{opacity:.5;cursor:default}
+.ticket.done{opacity:.55}
+.ticket.done .ttitle{text-decoration:line-through}
+
+.check{display:flex;flex-direction:column;background:var(--paper);border-radius:var(--r);box-shadow:var(--shadow);overflow:hidden}
+.ci{display:flex;align-items:center;gap:12px;padding:10px 14px;border-top:1px solid var(--line)}
+.ci:first-child{border-top:0}
+.ci input{width:22px;height:22px;accent-color:var(--accent);flex:0 0 auto}
+.ci .tx{flex:1;min-width:0;display:flex;flex-direction:column}
+.ci .tx b{font-weight:600;font-size:15px;overflow-wrap:anywhere}
+.ci .tx small{font-size:12.5px;color:var(--muted)}
+.ci.done .tx b{text-decoration:line-through;color:var(--muted)}
+.ci img{width:46px;height:46px;border-radius:8px;object-fit:cover;border:1px solid var(--line)}
+.ci .open{background:none;border:0;color:var(--muted);padding:6px;font-size:20px}
+
+.spot{background:var(--paper);border-radius:var(--r);box-shadow:var(--shadow);overflow:hidden;display:flex;flex-direction:column;border:0;padding:0;text-align:left;color:inherit;width:100%}
+.spot img{width:100%;aspect-ratio:16/9;object-fit:cover;background:var(--paper-2)}
+.spot .in{padding:12px 14px;display:flex;justify-content:space-between;align-items:flex-end;gap:10px}
+.spot .big{font-family:var(--f-hand);font-size:26px;line-height:1.15}
+.spot small{color:var(--muted);font-size:12.5px}
+
+.drop{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:150px;border:2px dashed var(--line);border-radius:var(--r);background:var(--paper);padding:18px;text-align:center;color:var(--muted);cursor:pointer;position:relative;overflow:hidden}
+.drop.has{padding:0;border-style:solid}
+.drop svg{width:34px;height:34px;color:var(--ink)}
+.drop b{color:var(--ink);font-weight:600}
+.drop img{width:100%;max-height:300px;object-fit:contain;background:var(--paper-2)}
+.drop .x{position:absolute;top:8px;right:8px;background:var(--paper);border:1px solid var(--line);border-radius:999px;width:34px;height:34px;display:grid;place-items:center}
+.field{display:flex;flex-direction:column;gap:6px;min-width:0}
+.field label{font-size:13px;font-weight:600;color:var(--muted)}
+.field textarea,.field input{width:100%;border:1px solid var(--line);background:var(--paper);border-radius:12px;padding:11px 12px;font-size:16px;min-width:0}
+.field textarea{min-height:92px;resize:vertical}
+.quick{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1px solid var(--line);background:var(--paper);border-radius:999px;padding:6px 12px;font-size:13.5px;color:var(--ink)}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.mic{display:flex;gap:8px;align-items:center;font-size:12.5px;color:var(--muted)}
+.mic svg{width:16px;height:16px;flex:0 0 auto}
+
+.review{background:var(--paper);border-radius:var(--r);box-shadow:var(--shadow);padding:16px;display:flex;flex-direction:column;gap:14px}
+.understood{display:flex;gap:10px;align-items:flex-start}
+.understood .who{font-size:11px;letter-spacing:.06em;font-weight:600;color:var(--muted);white-space:nowrap;padding-top:4px}
+.understood p{margin:0;font-family:var(--f-hand);font-size:19px;line-height:1.35}
+.unsure{font-size:12.5px;color:var(--warn)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media (max-width:420px){.grid2{grid-template-columns:1fr}}
+.rev-img{width:100%;max-height:220px;object-fit:contain;border-radius:10px;background:var(--paper-2)}
+.row-btns{display:grid;grid-template-columns:1fr 2fr;gap:10px}
+
+.sbox{display:flex;gap:8px;align-items:center;background:var(--paper);border:1px solid var(--line);border-radius:999px;padding:4px 6px 4px 14px}
+.sbox svg{width:19px;height:19px;color:var(--muted);flex:0 0 auto}
+.sbox input{flex:1;min-width:0;border:0;background:transparent;padding:9px 4px;font-size:16px;outline:none}
+.list{display:flex;flex-direction:column;gap:12px}
+.empty{text-align:center;color:var(--muted);padding:24px 8px;font-size:14px}
+.empty .h{font-family:var(--f-hand);font-size:22px;color:var(--ink)}
+
+.scrim{position:fixed;inset:0;background:rgba(10,16,20,.45);z-index:20;display:flex;align-items:flex-end;justify-content:center}
+.sheet{background:var(--bg);width:100%;max-width:560px;max-height:88%;overflow:auto;border-radius:20px 20px 0 0;padding:10px 16px calc(20px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:14px}
+.grab{width:42px;height:5px;border-radius:9px;background:var(--line);align-self:center}
+.sheet img.photo{width:100%;max-height:380px;object-fit:contain;border-radius:12px;background:var(--paper-2)}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:14.5px;background:var(--paper);border-radius:var(--r);padding:12px 14px;margin:0}
+.kv dt{color:var(--muted)}
+.kv dd{margin:0;overflow-wrap:anywhere}
+.set{background:var(--paper);border-radius:var(--r);padding:14px;display:flex;flex-direction:column;gap:8px}
+.set h3{margin:0;font-size:15px}
+.set p{margin:0;font-size:13.5px;color:var(--muted)}
+.status{display:flex;align-items:center;gap:8px;font-size:14px}
+
+.toast{position:fixed;left:12px;right:12px;top:calc(10px + env(safe-area-inset-top,0px));z-index:30;max-width:536px;margin:0 auto;background:var(--ink);color:var(--paper);border-radius:14px;padding:12px 14px;display:flex;gap:12px;align-items:center;box-shadow:0 10px 30px -10px rgba(0,0,0,.5)}
+.toast p{margin:0;flex:1;min-width:0;font-size:14.5px}
+.toast button{background:var(--paper);color:var(--ink);border:0;border-radius:999px;padding:6px 12px;font-size:13.5px;font-weight:600}
+.spin{width:18px;height:18px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:sp .8s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.spin{animation-duration:3s}}
+.foot{font-size:12px;color:var(--muted);text-align:center;margin:8px 0 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <h1>ฝากจำ</h1>
+      <p>ไม่ต้องจำทุกเรื่อง แค่จำไว้ว่าฝากไว้ที่นี่</p>
+    </div>
+    <button class="gear" id="openSettings" aria-label="ตั้งค่า"><span class="dot" id="pushDot"></span>ตั้งค่า</button>
+  </header>
+
+  <section class="view" id="v-today">
+    <div class="demo-note" id="demoNote" hidden>
+      <span>🎫</span>
+      <span><b>นี่คือตัวอย่าง</b> ตั๋วเหล่านี้จะหายไปเมื่อคุณฝากเรื่องแรก กด “ฝากเรื่อง” ด้านล่างเพื่อเริ่ม</span>
+    </div>
+    <div class="block" id="b-due"></div>
+    <div class="block" id="b-leave"></div>
+    <div class="block" id="b-park"></div>
+    <div class="block" id="b-warranty"></div>
+    <p class="foot" id="footNote"></p>
+  </section>
+
+  <section class="view" id="v-add" hidden>
+    <div id="capStep" class="block" style="gap:14px">
+      <label class="drop" id="drop" for="photo">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>
+        <b>ถ่ายรูป หรือเลือกแคปจอ</b>
+        <span style="font-size:13px">แชตนัด ที่จอดรถ ใบเสร็จ ของที่ต้องคืน</span>
+      </label>
+      <input type="file" id="photo" accept="image/*" hidden>
+      <div class="field">
+        <label for="txt">บอกสั้น ๆ ว่าฝากเรื่องอะไร</label>
+        <textarea id="txt" placeholder="เช่น พรุ่งนี้ออกจากบ้าน เอาเสื้อไปคืนด้วย"></textarea>
+        <div class="mic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>อยากพูดแทนพิมพ์ กดไมค์บนคีย์บอร์ดมือถือ แล้วพูดได้เลย</div>
+      </div>
+      <div class="quick" id="tries" aria-label="ลองประโยคตัวอย่าง"></div>
+      <button class="btn pri full" id="readBtn">ให้ช่วยอ่าน</button>
+      <p class="hint" id="aiHint"></p>
+    </div>
+    <div id="revStep" hidden></div>
+  </section>
+
+  <section class="view" id="v-find" hidden>
+    <div class="sbox">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg>
+      <input id="q" type="search" placeholder="ใบเสร็จหม้อทอดอยู่ไหน" autocomplete="off">
+    </div>
+    <div class="quick" id="qchips"></div>
+    <div class="list" id="results"></div>
+  </section>
+</div>
+
+<nav class="tabs" aria-label="เมนูหลัก">
+  <div class="tabs-in">
+    <button class="tab" data-v="today" aria-current="page">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v15H4zM4 9h16M9 3v4M15 3v4"/></svg>วันนี้</button>
+    <button class="tab main" data-v="add">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>ฝากเรื่อง</button>
+    <button class="tab" data-v="find">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg>ค้นคืน</button>
+  </div>
+</nav>
+
+<div class="scrim" id="scrim" hidden><div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-label="รายละเอียด"></div></div>
+<div class="toast" id="toast" hidden></div>
+<input type="file" id="importFile" accept="application/json,.json" hidden>
+
+<script>
+/* =====================================================================
+   ตั้งค่า — แก้ 3 บรรทัดนี้หลังตั้ง Cloudflare Worker เสร็จ (ดู README.md)
+   ถ้าเว้นว่าง แอปยังใช้ได้: อ่านจากข้อความด้วยกติกาไทย และเก็บข้อมูลในเครื่อง
+   ===================================================================== */
+const CONFIG = {
+  API: "",            // เช่น "https://fakjam.yourname.workers.dev"
+  VAPID_PUBLIC: "",   // Public key จาก keygen.html
+  APP_TOKEN: ""       // ต้องตรงกับ APP_TOKEN ใน Worker (ถ้าตั้งไว้)
+};
+
+(function(){
+"use strict";
+const API=CONFIG.API.replace(/\/+$/,"");
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const pad=n=>String(n).padStart(2,"0");
+const pad3=n=>String(n||0).padStart(3,"0");
+const DAYS=["อาทิตย์","จันทร์","อังคาร","พุธ","พฤหัสบดี","ศุกร์","เสาร์"];
+const MON=["ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."];
+const toLocal=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+const dayStart=d=>{const x=new Date(d);x.setHours(0,0,0,0);return x};
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const ls={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+const headers=()=>Object.assign({"content-type":"application/json"},CONFIG.APP_TOKEN?{"x-app-token":CONFIG.APP_TOKEN}:{});
+
+function fmtWhen(s,withTime=true){
+  if(!s) return ""; const d=new Date(s); if(isNaN(d)) return "";
+  const diff=Math.round((dayStart(d)-dayStart(new Date()))/864e5);
+  const day=diff===0?"วันนี้":diff===1?"พรุ่งนี้":diff===-1?"เมื่อวาน":(diff>1&&diff<7)?"วัน"+DAYS[d.getDay()]+"นี้":`${d.getDate()} ${MON[d.getMonth()]}`;
+  return withTime?`${day} ${pad(d.getHours())}:${pad(d.getMinutes())} น.`:day;
+}
+function fmtDate(s){ if(!s) return ""; const d=new Date(s.length<=10?s+"T00:00":s); return isNaN(d)?s:`${d.getDate()} ${MON[d.getMonth()]} ${d.getFullYear()+543}`; }
+function ago(ms){ const m=Math.round((Date.now()-ms)/6e4); if(m<1) return "เมื่อกี้"; if(m<60) return m+" นาทีก่อน"; const h=Math.round(m/60); if(h<24) return h+" ชม.ก่อน"; return Math.round(h/24)+" วันก่อน"; }
+
+/* ---------- kinds & icons ---------- */
+const ICON={
+  appointment:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v15H4zM4 9h16M9 3v4M15 3v4"/><path d="M8 13h3v3H8z"/></svg>',
+  bring:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8h14l-1 12H6z"/><path d="M9 8a3 3 0 0 1 6 0"/></svg>',
+  location:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-6.2 7-11.5A7 7 0 0 0 5 9.5C5 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>',
+  document:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6M9 16h3"/></svg>',
+  note:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h14v12l-4 4H5z"/><path d="M15 20v-4h4M8 9h8M8 13h5"/></svg>'
+};
+const KIND={appointment:"นัด",bring:"เอาไปด้วย",location:"ที่วางของ",document:"เอกสาร",note:"โน้ต"};
+const ic={map:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-6.2 7-11.5A7 7 0 0 0 5 9.5C5 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>',
+  cal:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 5h16v15H4zM4 9h16M9 3v4M15 3v4M12 12v5M9.5 14.5h5"/></svg>',
+  check:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 4.5 4.5L19 7"/></svg>'};
+
+/* ---------- reminders ---------- */
+function remindAt(it){
+  if(it.kind==="appointment"&&it.when) return new Date(it.when).getTime()-60*6e4;
+  if(it.kind==="bring"&&it.when) return new Date(it.when).getTime();
+  if(it.kind==="document"&&it.warranty_until){const d=new Date(it.warranty_until+"T09:00");d.setDate(d.getDate()-30);return d.getTime()}
+  if(it.kind==="note"&&it.when) return new Date(it.when).getTime();
+  return null;
+}
+function notifText(it){
+  const head={appointment:"อีก 1 ชม. มีนัด",bring:"ก่อนออกจากบ้าน อย่าลืม",document:"ประกันใกล้หมด",note:"ถึงเวลา"}[it.kind]||"ถึงเวลา";
+  return {title:`${head}: ${it.title}`,body:[it.place,it.note].filter(Boolean).join(" · ")||"แตะเพื่อดูสิ่งที่ฝากไว้"};
+}
+function calUrl(it){
+  const s=new Date(it.when), e=new Date(s.getTime()+60*6e4);
+  const f=d=>`${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}T${pad(d.getHours())}${pad(d.getMinutes())}00`;
+  const p=new URLSearchParams({action:"TEMPLATE",text:it.title,dates:f(s)+"/"+f(e),ctz:"Asia/Bangkok",details:"ฝากจำไว้: "+(it.note||it.title)});
+  if(it.place) p.set("location",it.place);
+  return "https://calendar.google.com/calendar/render?"+p.toString();
+}
+const mapUrl=q=>"https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(q);
+
+/* ---------- demo items (shown only while nothing is saved) ---------- */
+function svgImg(body,bg){return "data:image/svg+xml;utf8,"+encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 180"><rect width="320" height="180" fill="${bg}"/>${body}</svg>`)}
+function demoItems(){
+  const now=new Date();
+  const sat=new Date(now); sat.setDate(now.getDate()+((6-now.getDay()+7)%7||7)); sat.setHours(18,0,0,0);
+  const tmr=new Date(now); tmr.setDate(now.getDate()+1); tmr.setHours(7,30,0,0);
+  const w=new Date(now); w.setDate(now.getDate()+24);
+  return [
+    {id:"d1",demo:true,no:1,kind:"appointment",title:"กินข้าวกับแก๊งเพื่อน",when:toLocal(sat),place:"ร้านส้มตำป้าแดง ลาดพร้าว",note:"เสาร์นี้หกโมง ตามที่ตกลงในแชต",tags:["กินข้าว","เพื่อน","ส้มตำ"],created:Date.now()-36e5*5,done:false,
+     photo:svgImg('<rect x="40" y="26" width="200" height="38" rx="18" fill="#fff"/><text x="58" y="51" font-size="16" font-family="sans-serif" fill="#333">เสาร์นี้กินข้าวตอนหกโมงนะ</text><rect x="110" y="84" width="170" height="38" rx="18" fill="#06C755"/><text x="128" y="109" font-size="16" font-family="sans-serif" fill="#fff">โอเค เจอกันที่ร้าน</text>',"#DCE6F0")},
+    {id:"d2",demo:true,no:2,kind:"bring",title:"เอาเสื้อไปคืนพี่โอ๊ต",when:toLocal(tmr),place:"",note:"ถุงกระดาษสีน้ำตาลข้างประตู",tags:["เสื้อ","คืน","ก่อนออกจากบ้าน"],created:Date.now()-36e5*2,done:false,
+     photo:svgImg('<path d="M110 40l30-14h40l30 14 30 30-26 22-14-12v84H120V80l-14 12-26-22z" fill="#3E6FB0"/><path d="M140 26a20 14 0 0 0 40 0" fill="none" stroke="#2B4F80" stroke-width="5"/>',"#EDE7DB")},
+    {id:"d3",demo:true,no:3,kind:"location",title:"ที่จอดรถ",when:"",place:"เซ็นทรัล ลาดพร้าว",note:"ชั้น 3 โซน B ใกล้ลิฟต์",tags:["จอดรถ","ห้าง"],created:Date.now()-36e5*1.2,done:false,
+     photo:svgImg('<rect x="0" y="120" width="320" height="60" fill="#4A4F55"/><rect x="118" y="20" width="84" height="84" rx="10" fill="#1F5FBF"/><text x="160" y="80" text-anchor="middle" font-size="54" font-weight="700" font-family="sans-serif" fill="#fff">3B</text><path d="M20 150h60M120 150h60M220 150h60" stroke="#E8D24A" stroke-width="5"/>',"#8C939A")},
+    {id:"d4",demo:true,no:4,kind:"document",title:"ใบเสร็จหม้อทอดไร้น้ำมัน",when:"",place:"",note:"ซื้อที่เพาเวอร์บาย 2,490 บาท ประกัน 1 ปี",warranty_until:toLocal(w).slice(0,10),tags:["ใบเสร็จ","หม้อทอด","เครื่องใช้ไฟฟ้า","ประกัน"],created:Date.now()-864e5*340,done:false,
+     photo:svgImg('<rect x="100" y="12" width="120" height="160" fill="#fff"/><path d="M115 36h90M115 56h70M115 76h90M115 96h50M115 130h90" stroke="#999" stroke-width="5"/><text x="160" y="160" text-anchor="middle" font-size="14" font-family="monospace" fill="#333">2,490.00</text>',"#D8D2C4")}
+  ];
+}
+
+/* ---------- storage: IndexedDB on this phone (localStorage if IDB is blocked) ---------- */
+const idb={
+  db:null,
+  open(){ return new Promise((res,rej)=>{ const r=indexedDB.open("fakjam",1);
+    r.onupgradeneeded=()=>r.result.createObjectStore("items",{keyPath:"id"});
+    r.onsuccess=()=>{this.db=r.result;res()}; r.onerror=()=>rej(r.error); }); },
+  tx(mode,fn){ return new Promise((res,rej)=>{ const t=this.db.transaction("items",mode); const s=t.objectStore("items"); const out=fn(s);
+    t.oncomplete=()=>res(out&&out.result); t.onerror=()=>rej(t.error); t.onabort=()=>rej(t.error); }); },
+  all(){ return this.tx("readonly",s=>s.getAll()); },
+  put(it){ return this.tx("readwrite",s=>s.put(it)); },
+  del(id){ return this.tx("readwrite",s=>s.delete(id)); }
+};
+const store={items:[],useIdb:false,
+  async init(){
+    try{ await idb.open(); this.items=await idb.all()||[]; this.useIdb=true; }
+    catch(e){ this.items=ls.get("fakjam.items",[]); }
+    try{ navigator.storage&&navigator.storage.persist&&navigator.storage.persist(); }catch(e){}
+  },
+  async save(it){
+    const i=this.items.findIndex(x=>x.id===it.id); if(i>=0) this.items[i]=it; else this.items.push(it);
+    render();
+    try{ if(this.useIdb) await idb.put(it); else ls.set("fakjam.items",this.items); }
+    catch(e){ toast("บันทึกไม่สำเร็จ พื้นที่ในเครื่องอาจเต็ม"); }
+    syncReminders();
+  },
+  async remove(id){
+    this.items=this.items.filter(x=>x.id!==id); render();
+    try{ if(this.useIdb) await idb.del(id); else ls.set("fakjam.items",this.items); }catch(e){}
+    syncReminders();
+  },
+  async replaceAll(list){
+    for(const it of this.items){ try{ if(this.useIdb) await idb.del(it.id); }catch(e){} }
+    this.items=[]; for(const it of list){ this.items.push(it); try{ if(this.useIdb) await idb.put(it); }catch(e){} }
+    if(!this.useIdb) ls.set("fakjam.items",this.items);
+    render(); syncReminders();
+  }
+};
+const demoState=demoItems();
+const allItems=()=>store.items.length?store.items:demoState;
+const isDemo=()=>!store.items.length;
+const nextNo=()=>store.items.reduce((m,x)=>Math.max(m,x.no||0),0)+1;
+
+/* ---------- rendering ---------- */
+function ticket(it){
+  const meta=[];
+  if(it.when&&it.kind!=="location") meta.push(`<span class="t">${esc(fmtWhen(it.when))}</span>`);
+  if(it.place) meta.push(`<span>${esc(it.place)}</span>`);
+  if(it.kind==="location") meta.push(`<span>ฝากไว้ ${ago(it.created)}</span>`);
+  if(it.kind==="document"&&it.warranty_until) meta.push(`<span>ประกันถึง <span class="t">${esc(fmtDate(it.warranty_until))}</span></span>`);
+  const acts=[];
+  if(it.kind==="appointment"&&it.place) acts.push(`<a class="btn" href="${mapUrl(it.place)}" target="_blank" rel="noopener">${ic.map}เปิดแผนที่</a>`);
+  if((it.kind==="appointment"||it.kind==="bring")&&it.when) acts.push(`<a class="btn" href="${calUrl(it)}" target="_blank" rel="noopener">${ic.cal}ลงปฏิทิน</a>`);
+  if(it.kind==="document"&&it.photo) acts.push(`<button class="btn" data-open="${it.id}">ดูใบเสร็จ</button>`);
+  if(it.kind!=="document"&&it.kind!=="location") acts.push(`<button class="btn ghost" data-done="${it.id}">${ic.check}${it.done?"ยังไม่เสร็จ":"เสร็จแล้ว"}</button>`);
+  return `<div class="ticket${it.done?" done":""}">
+    <div class="stub">${ICON[it.kind]||ICON.note}<span class="no">#${pad3(it.no)}</span></div>
+    <div class="tbody">
+      <button class="trow" data-open="${it.id}">
+        <div class="tcol">
+          <div><span class="kind${it.demo?" demo":""}">${it.demo?"ตัวอย่าง · ":""}${KIND[it.kind]||"โน้ต"}</span></div>
+          <div class="ttitle">${esc(it.title)}</div>
+          ${meta.length?`<div class="tmeta">${meta.join("")}</div>`:""}
+          ${it.note?`<div class="tnote">${esc(it.note)}</div>`:""}
+        </div>
+        ${it.photo?`<img class="thumb" src="${it.photo}" alt="">`:""}
+      </button>
+      ${acts.length?`<div class="acts">${acts.join("")}</div>`:""}
+    </div></div>`;
+}
+
+function render(){
+  const items=allItems(), now=Date.now();
+  $("#demoNote").hidden=!isDemo();
+  const due=items.filter(it=>it.kind==="appointment"&&!it.done&&it.when&&(()=>{const t=new Date(it.when).getTime();return t>now-3*36e5&&t<now+7*864e5})())
+    .sort((a,b)=>new Date(a.when)-new Date(b.when));
+  $("#b-due").innerHTML=`<div class="block-h"><h2>นัดที่ใกล้ถึง</h2><span>${due.length} นัด</span></div>`+
+    (due.length?due.map(ticket).join(""):`<p class="hint">ยังไม่มีนัดใน 7 วันนี้</p>`);
+  const endTmr=dayStart(new Date()).getTime()+2*864e5;
+  const leave=items.filter(it=>it.kind==="bring"&&(!it.when||new Date(it.when).getTime()<endTmr)&&(!it.done||now-(it.doneAt||0)<864e5))
+    .sort((a,b)=>(a.done-b.done)||(new Date(a.when||0)-new Date(b.when||0)));
+  $("#b-leave").innerHTML=`<div class="block-h"><h2>ก่อนออกจากบ้าน</h2><span>${leave.filter(x=>!x.done).length} อย่างที่ต้องหยิบ</span></div>`+
+    (leave.length?`<div class="check">${leave.map(it=>`<div class="ci${it.done?" done":""}">
+      <input type="checkbox" aria-label="หยิบแล้ว: ${esc(it.title)}" data-done="${it.id}" ${it.done?"checked":""}>
+      <div class="tx"><b>${esc(it.title)}</b><small>${esc([fmtWhen(it.when,false),it.note].filter(Boolean).join(" · "))}</small></div>
+      ${it.photo?`<img src="${it.photo}" alt="">`:""}
+      <button class="open" data-open="${it.id}" aria-label="ดูรายละเอียด">›</button></div>`).join("")}</div>`
+    :`<p class="hint">ไม่มีของต้องเอาไปวันนี้หรือพรุ่งนี้</p>`);
+  const park=items.filter(it=>it.kind==="location"&&now-it.created<864e5).sort((a,b)=>b.created-a.created)[0];
+  $("#b-park").innerHTML=park?`<div class="block-h"><h2>${esc(park.title)}</h2><span>หายจากหน้านี้หลัง 1 วัน</span></div>
+    <button class="spot" data-open="${park.id}">${park.photo?`<img src="${park.photo}" alt="รูปที่ฝากไว้">`:""}
+      <div class="in"><div><div class="big">${esc(park.note||park.title)}</div><small>${esc(park.place||"")}${park.place?" · ":""}ฝากไว้ ${ago(park.created)}</small></div><span class="kind${park.demo?" demo":""}">#${pad3(park.no)}</span></div></button>`:"";
+  const war=items.filter(it=>it.kind==="document"&&it.warranty_until&&(()=>{const t=new Date(it.warranty_until+"T23:59").getTime();return t>now&&t<now+60*864e5})());
+  $("#b-warranty").innerHTML=war.length?`<div class="block-h"><h2>ประกันใกล้หมด</h2><span>ใบเสร็จอยู่ตรงนี้แล้ว</span></div>`+war.map(ticket).join(""):"";
+  $("#footNote").textContent=pushReady()?"การเตือนบนมือถือเปิดอยู่":"แอปเตือนได้ตอนเปิดอยู่ ถ้าอยากให้มือถือเด้งเตือน กด “ตั้งค่า” แล้วเปิดการเตือน";
+  $("#pushDot").classList.toggle("on",pushReady());
+  renderResults();
+}
+
+/* ---------- search ---------- */
+const STOP=new Set(["อยู่","ไหน","ที่ไหน","ตรงไหน","ของ","ไว้","ยัง","ไหม","มั้ย","เมื่อ","ไร","อะไร","หา","ขอ","ดู","ครับ","ค่ะ","คะ","นะ","ผม","ฉัน","เรา","เป็น","คือ","ที่","กับ","และ","ได้","มี","เคย","อัน","ใบ","เอา"]);
+const seg=("Segmenter" in Intl)?new Intl.Segmenter("th",{granularity:"word"}):null;
+function words(s){
+  s=String(s||"").toLowerCase();
+  const out=seg?[...seg.segment(s)].filter(x=>x.isWordLike).map(x=>x.segment):s.split(/\s+/);
+  return out.filter(w=>w.length>=2&&!STOP.has(w));
+}
+const KSYN={document:["ใบเสร็จ","บิล","ประกัน","เอกสาร"],location:["จอด","รถ","ชั้น","โซน"],appointment:["นัด","เจอ","ประชุม"],bring:["คืน","เอาไป","หยิบ"]};
+const hay=it=>[it.title,it.note,it.place,(it.tags||[]).join(" "),it.understood,KIND[it.kind]].join(" ").toLowerCase();
+function search(q){
+  const items=allItems();
+  if(!q.trim()) return [...items].sort((a,b)=>b.created-a.created);
+  const ql=q.toLowerCase(), qs=words(q);
+  return items.map(it=>{
+    const h=hay(it); let s=0;
+    qs.forEach(w=>{ if(h.includes(w)) s+=w.length; });
+    (it.tags||[]).forEach(t=>{ if(t&&ql.includes(String(t).toLowerCase())) s+=String(t).length+2; });
+    (KSYN[it.kind]||[]).forEach(k=>{ if(ql.includes(k)) s+=3; });
+    if(h.includes(ql.trim())) s+=10;
+    return {it,s};
+  }).filter(x=>x.s>0).sort((a,b)=>b.s-a.s||b.it.created-a.it.created).map(x=>x.it);
+}
+function renderResults(){
+  const r=search($("#q").value);
+  $("#results").innerHTML=r.length?r.map(ticket).join(""):
+    `<div class="empty"><div class="h">ยังหาไม่เจอ</div>ลองคำอื่น เช่น ชื่อของ ชื่อร้าน หรือคำว่า “ใบเสร็จ” “จอดรถ”</div>`;
+}
+$("#q").addEventListener("input",renderResults);
+$("#qchips").innerHTML=["ใบเสร็จหม้อทอดอยู่ไหน","จอดรถไว้ไหน","นัดเสาร์นี้","ของที่ต้องคืน"].map(t=>`<button class="chip" data-q="${t}">${t}</button>`).join("");
+$("#qchips").addEventListener("click",e=>{const b=e.target.closest("[data-q]"); if(!b) return; $("#q").value=b.dataset.q; renderResults();});
+
+/* ---------- navigation ---------- */
+function go(v){
+  ["today","add","find"].forEach(k=>{$("#v-"+k).hidden=k!==v;});
+  document.querySelectorAll(".tab").forEach(t=>t.setAttribute("aria-current",t.dataset.v===v?"page":"false"));
+  window.scrollTo({top:0});
+  if(v==="find") renderResults();
+}
+document.querySelectorAll(".tab").forEach(t=>t.addEventListener("click",()=>go(t.dataset.v)));
+
+document.addEventListener("click",e=>{
+  const o=e.target.closest("[data-open]"); if(o&&!e.target.closest("[data-done]")){ e.preventDefault(); openSheet(o.dataset.open); return; }
+  const d=e.target.closest("button[data-done]"); if(d) toggleDone(d.dataset.done);
+});
+document.addEventListener("change",e=>{ const d=e.target.closest("input[data-done]"); if(d) toggleDone(d.dataset.done); });
+function toggleDone(id){
+  const it=allItems().find(x=>x.id===id); if(!it) return;
+  const n={...it,done:!it.done,doneAt:Date.now()};
+  if(it.demo){ Object.assign(it,n); render(); }
+  else store.save(n);
+  if(!$("#scrim").hidden&&$("#sheet").dataset.id===id) openSheet(id);
+}
+
+/* ---------- sheet ---------- */
+function showSheet(html,id){ $("#sheet").innerHTML=html; $("#sheet").dataset.id=id||""; $("#scrim").hidden=false; }
+function closeSheet(){ $("#scrim").hidden=true; $("#sheet").dataset.id=""; if(location.hash) history.replaceState(null,"",location.pathname+location.search); }
+$("#scrim").addEventListener("click",e=>{ if(e.target.id==="scrim"||e.target.closest("[data-close]")) closeSheet(); });
+document.addEventListener("keydown",e=>{ if(e.key==="Escape") closeSheet(); });
+
+function openSheet(id){
+  const it=allItems().find(x=>x.id===id); if(!it) return;
+  const rows=[["ชนิด",KIND[it.kind]],["เมื่อ",it.when?fmtWhen(it.when):""],["ที่",it.place],["จำไว้ว่า",it.note],["ประกันถึง",it.warranty_until?fmtDate(it.warranty_until):""],["ฝากเมื่อ",ago(it.created)],["คำค้น",(it.tags||[]).join(", ")]].filter(r=>r[1]);
+  const acts=[];
+  if(it.place) acts.push(`<a class="btn" href="${mapUrl(it.place)}" target="_blank" rel="noopener">${ic.map}เปิดแผนที่</a>`);
+  if(it.when&&it.kind!=="location") acts.push(`<a class="btn" href="${calUrl(it)}" target="_blank" rel="noopener">${ic.cal}ลงปฏิทิน</a>`);
+  if(it.kind==="appointment"||it.kind==="bring"||it.kind==="note") acts.push(`<button class="btn" data-done="${it.id}">${ic.check}${it.done?"ยังไม่เสร็จ":"เสร็จแล้ว"}</button>`);
+  if(!it.demo) acts.push(`<button class="btn danger" id="delBtn">ลบ</button>`);
+  showSheet(`<div class="grab"></div>
+    <div class="trow" style="cursor:default"><div class="tcol"><span class="kind${it.demo?" demo":""}" style="align-self:flex-start">${it.demo?"ตัวอย่าง · ":""}#${pad3(it.no)}</span><h2 style="margin:6px 0 0;font-size:20px">${esc(it.title)}</h2></div>
+    <span class="btn ghost" data-close role="button" tabindex="0">ปิด</span></div>
+    ${it.photo?`<img class="photo" src="${it.photo}" alt="รูปที่ฝากไว้">`:""}
+    <dl class="kv">${rows.map(r=>`<dt>${r[0]}</dt><dd>${esc(r[1])}</dd>`).join("")}</dl>
+    <div class="acts">${acts.join("")}</div>`,id);
+  const del=$("#delBtn"); if(del){ let armed=false; del.onclick=()=>{ if(!armed){armed=true;del.textContent="แตะอีกครั้งเพื่อลบ";return;} store.remove(it.id); closeSheet(); toast("ลบแล้ว"); }; }
+}
+
+/* ---------- toast ---------- */
+let tt;
+function toast(msg,action){
+  const t=$("#toast"); clearTimeout(tt);
+  t.innerHTML=`<p>${esc(msg)}</p>${action?`<button id="tAct">${esc(action.label)}</button>`:""}`;
+  t.hidden=false;
+  if(action) $("#tAct").onclick=()=>{ t.hidden=true; action.fn(); };
+  tt=setTimeout(()=>t.hidden=true,action?12000:3200);
+}
+
+/* ---------- capture ---------- */
+let photoData="";
+const TRIES=["เสาร์นี้กินข้าวตอนหกโมง ที่ร้านส้มตำป้าแดง","จอดรถชั้น 3 โซน B","พรุ่งนี้ออกจากบ้าน เอาเสื้อไปคืนด้วย","ใบเสร็จหม้อทอด ประกัน 1 ปี"];
+$("#tries").innerHTML=TRIES.map(t=>`<button class="chip" data-t="${t}">${t}</button>`).join("");
+$("#tries").addEventListener("click",e=>{const b=e.target.closest("[data-t]"); if(b){ $("#txt").value=b.dataset.t; $("#txt").focus(); }});
+$("#photo").addEventListener("change",async e=>{
+  const f=e.target.files[0]; if(!f) return;
+  try{ photoData=await shrink(f); showPhoto(); } catch(err){ toast("เปิดรูปนี้ไม่ได้ ลองรูปอื่น"); }
+  e.target.value="";
+});
+const dropHTML=$("#drop").innerHTML;
+function showPhoto(){
+  const d=$("#drop"); d.classList.add("has");
+  d.innerHTML=`<img src="${photoData}" alt="รูปที่จะฝาก"><button class="x" id="rmPhoto" aria-label="เอารูปออก">✕</button>`;
+  $("#rmPhoto").onclick=ev=>{ev.preventDefault();ev.stopPropagation();photoData="";resetDrop();};
+}
+function resetDrop(){ const d=$("#drop"); d.classList.remove("has"); d.innerHTML=dropHTML; }
+function shrink(file){
+  return new Promise((res,rej)=>{
+    const url=URL.createObjectURL(file), img=new Image();
+    img.onload=()=>{
+      let max=1100, q=.75;
+      const draw=()=>{ const s=Math.min(1,max/Math.max(img.width,img.height)); const c=document.createElement("canvas");
+        c.width=Math.round(img.width*s); c.height=Math.round(img.height*s); c.getContext("2d").drawImage(img,0,0,c.width,c.height); return c.toDataURL("image/jpeg",q); };
+      let data=draw();
+      while(data.length>300000&&max>500){ max-=150; q-=.05; data=draw(); }
+      URL.revokeObjectURL(url); res(data);
+    };
+    img.onerror=()=>{URL.revokeObjectURL(url);rej()}; img.src=url;
+  });
+}
+
+$("#aiHint").textContent=API?"ระบบจะอ่านรูปและข้อความ แล้วให้คุณตรวจก่อนบันทึก":"ยังไม่ได้ต่อระบบอ่านรูป ตอนนี้อ่านจากข้อความด้วยกติกาไทย (รูปจะเก็บไว้ แต่ยังไม่ถูกอ่าน)";
+
+$("#readBtn").addEventListener("click",async()=>{
+  const text=$("#txt").value.trim();
+  if(!text&&!photoData){ toast("ใส่รูปหรือพิมพ์สั้น ๆ ก่อน"); return; }
+  const btn=$("#readBtn"); btn.disabled=true; btn.innerHTML=`<span class="spin"></span>กำลังอ่าน…`;
+  let draft=null, failed=false;
+  if(API){
+    try{
+      const now=new Date();
+      const r=await fetch(API+"/read",{method:"POST",headers:headers(),body:JSON.stringify({text,now:toLocal(now),weekday:DAYS[now.getDay()],image:photoData?photoData.split(",")[1]:null})});
+      if(!r.ok) throw new Error("HTTP "+r.status);
+      draft=fromAI(await r.json(),text);
+    }catch(e){ failed=true; }
+  }
+  if(!draft){ draft=parseThai(text);
+    if(failed) draft.unsure=["ระบบอ่านรูปไม่ตอบ ใช้กติกาไทยอ่านจากข้อความแทน"];
+    else if(photoData&&!text) draft.unsure=["รูปนี้ยังไม่ได้อ่าน ช่วยตั้งชื่อเรื่องให้หน่อย"]; }
+  draft.photo=photoData; draft.raw=text;
+  btn.disabled=false; btn.textContent="ให้ช่วยอ่าน";
+  showReview(draft);
+});
+
+function fromAI(r,text){
+  if(!r||typeof r!=="object"||r.error) return null;
+  const kind=KIND[r.kind]?r.kind:"note";
+  const okWhen=v=>typeof v==="string"&&/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(v)?v.slice(0,16):"";
+  const okDate=v=>typeof v==="string"&&/^\d{4}-\d{2}-\d{2}/.test(v)?v.slice(0,10):"";
+  return {kind,title:String(r.title||text||"เรื่องที่ฝากไว้").slice(0,60),when:okWhen(r.when),place:r.place?String(r.place):"",note:r.note?String(r.note):"",
+    warranty_until:okDate(r.warranty_until),tags:Array.isArray(r.tags)?r.tags.map(String).slice(0,8):[],understood:r.understood?String(r.understood):"",
+    unsure:Array.isArray(r.unsure)?r.unsure.map(String).slice(0,3):[],by:"ai"};
+}
+
+/* ---------- Thai rule reader (works offline, no AI) ---------- */
+const NUM={"สิบเอ็ด":11,"สิบสอง":12,"สิบ":10,"หนึ่ง":1,"เอ็ด":1,"สอง":2,"สาม":3,"สี่":4,"ห้า":5,"หก":6,"เจ็ด":7,"แปด":8,"เก้า":9};
+const NRE="(\\d{1,2}|สิบเอ็ด|สิบสอง|สิบ|หนึ่ง|สอง|สาม|สี่|ห้า|หก|เจ็ด|แปด|เก้า)";
+const num=s=>/^\d+$/.test(s)?+s:NUM[s];
+function parseTime(t){
+  let m;
+  if(m=t.match(/(\d{1,2})[:.](\d{2})/)) return [+m[1],+m[2]];
+  if(m=t.match(new RegExp("บ่าย\\s*"+NRE+"?\\s*โมง"))) return [12+(m[1]?num(m[1]):1),0];
+  if(m=t.match(new RegExp(NRE+"\\s*ทุ่ม"))) return [18+num(m[1]),0];
+  if(m=t.match(new RegExp(NRE+"\\s*โมง\\s*เย็น"))){ const n=num(m[1]); return [n<12?n+12:n,0]; }
+  if(m=t.match(new RegExp(NRE+"\\s*โมง\\s*เช้า"))) return [num(m[1]),0];
+  if(/เที่ยงคืน/.test(t)) return [0,0];
+  if(/เที่ยง/.test(t)) return [12,0];
+  if(m=t.match(new RegExp(NRE+"\\s*โมง"))){ let n=num(m[1]); const eve=/เย็น|กินข้าว|ข้าวเย็น|ดินเนอร์|ปาร์ตี้/.test(t);
+    if(n<=6&&(eve||n<=5)) n+=12; return [n,0]; }
+  return null;
+}
+function parseDay(t){
+  const now=new Date(), d=dayStart(now); let m;
+  if(/มะรืน/.test(t)){ d.setDate(d.getDate()+2); return {d}; }
+  if(/พรุ่งนี้/.test(t)){ d.setDate(d.getDate()+1); return {d}; }
+  if(/วันนี้|คืนนี้|เย็นนี้|เช้านี้/.test(t)) return {d};
+  const names=["อาทิตย์","จันทร์","อังคาร","พุธ","พฤหัส","ศุกร์","เสาร์"];
+  for(let i=0;i<7;i++){ const at=t.indexOf(names[i]); if(at>=0){ const add=(i-now.getDay()+7)%7; d.setDate(d.getDate()+add);
+    if(/^หน้า/.test(t.slice(at+names[i].length).replace(/^บดี/,""))) d.setDate(d.getDate()+7); return {d,same:add===0}; } }
+  if(m=t.match(/(\d{1,2})\/(\d{1,2})/)){ d.setMonth(+m[2]-1,+m[1]); if(d<dayStart(now)) d.setFullYear(d.getFullYear()+1); return {d}; }
+  return null;
+}
+function parseThai(text){
+  const t=text||"";
+  let kind="note";
+  if(/ชั้น\s*\d|โซน|จอดรถ|ที่จอด|จอดไว้|วางไว้/.test(t)) kind="location";
+  else if(/ใบเสร็จ|ใบกำกับ|รับประกัน|ประกัน|บิล/.test(t)) kind="document";
+  else if(/เอา.+ไป|คืนของ|ไปคืน|เอาคืน|ก่อนออก|อย่าลืมเอา|หยิบ/.test(t)) kind="bring";
+  const tm=parseTime(t), day=parseDay(t);
+  if(kind==="note"&&(tm||/นัด/.test(t))) kind="appointment";
+  let when="";
+  if(kind==="appointment"||kind==="bring"||(kind==="note"&&(tm||day))){
+    const d=day?new Date(day.d):dayStart(new Date());
+    if(tm) d.setHours(tm[0],tm[1],0,0); else d.setHours(kind==="bring"?7:9,kind==="bring"?30:0,0,0);
+    if(!day&&d.getTime()<Date.now()) d.setDate(d.getDate()+1);
+    if(day&&day.same&&d.getTime()<Date.now()) d.setDate(d.getDate()+7);
+    when=toLocal(d);
+  }
+  let place=""; const pm=t.match(/((?:ร้าน|ห้าง|โรงพยาบาล|โรงเรียน|ตลาด|เซ็นทรัล)[^\s,]*)/); if(pm&&kind!=="bring") place=pm[1];
+  let note="", title=t, wu="";
+  if(kind==="location"){ const a=(t.match(/(ชั้น\s*\S+)/)||[])[1]||"", z=(t.match(/(โซน\s*\S+)/)||[])[1]||""; note=[a,z].filter(Boolean).join(" ")||t; title=/จอด|รถ/.test(t)||!t?"ที่จอดรถ":"วางของไว้"; }
+  else if(kind==="document"){ const p=(t.match(/ใบเสร็จ\s*([^\s,]+)/)||[])[1]; title=p?"ใบเสร็จ"+p:t; const w=t.match(/ประกัน\s*(\d+)\s*(ปี|เดือน)/);
+    if(w){ const d=new Date(); if(w[2]==="ปี") d.setFullYear(d.getFullYear()+(+w[1])); else d.setMonth(d.getMonth()+(+w[1])); wu=toLocal(d).slice(0,10); note="ประกัน "+w[1]+" "+w[2]; } }
+  else { title=t.replace(/วันนี้|คืนนี้|เย็นนี้|(เสาร์|อาทิตย์|จันทร์|อังคาร|พุธ|พฤหัส(บดี)?|ศุกร์)(นี้|หน้า)?|วัน(?=\S)|พรุ่งนี้|มะรืน(นี้)?|ตอน|ออกจากบ้าน|ด้วย|นะ|\d{1,2}[:.]\d{2}\s*(น\.)?/g," ")
+      .replace(new RegExp("บ่าย\\s*"+NRE+"?\\s*โมง|"+NRE+"\\s*(ทุ่ม|โมง(\\s*(เย็น|เช้า))?)","g")," ").replace(place||"\u0000","").replace(/\s*ที่\s*$/,"").replace(/\s+/g," ").trim()||t; }
+  const tags=[...new Set(words(t))].slice(0,6);
+  const und={appointment:`นัด “${title}” ${fmtWhen(when)}${place?" ที่ "+place:""}`,bring:`ต้องเอา “${title}” ไปด้วย ${fmtWhen(when,false)} จะอยู่ในเช็กลิสต์ก่อนออกจากบ้าน`,
+    location:`${title}: ${note}`,document:`เก็บ ${title} ไว้ค้นทีหลัง`,note:`จำไว้ว่า “${title}”`}[kind];
+  return {kind,title:title.slice(0,60),when,place,note,warranty_until:wu,tags,understood:und,unsure:[],by:"rules"};
+}
+window.__parseThai=parseThai; /* for testing */
+
+/* ---------- review ---------- */
+let draft=null;
+function showReview(d){
+  draft=d; $("#capStep").hidden=true; const r=$("#revStep"); r.hidden=false;
+  r.innerHTML=`<div class="review">
+    <div class="understood"><span class="who">แอปเข้าใจว่า</span><p>${esc(d.understood||d.title)}</p></div>
+    ${d.unsure&&d.unsure.length?`<div class="unsure">ไม่แน่ใจ: ${esc(d.unsure.join(" · "))}</div>`:""}
+    ${d.photo?`<img class="rev-img" src="${d.photo}" alt="รูปที่จะฝาก">`:""}
+    <div class="field"><label>ฝากเป็นเรื่องแบบไหน</label><div class="quick" id="kindPick">${Object.keys(KIND).map(k=>`<button class="chip" data-k="${k}" aria-pressed="${k===d.kind}">${KIND[k]}</button>`).join("")}</div></div>
+    <div class="field"><label for="f-title">ชื่อเรื่อง</label><input id="f-title" value="${esc(d.title)}"></div>
+    <div class="grid2">
+      <div class="field" id="w-when"><label for="f-when">วันเวลา</label><input id="f-when" type="datetime-local" value="${esc(d.when)}"></div>
+      <div class="field" id="w-place"><label for="f-place">สถานที่ (เปิดแผนที่ได้)</label><input id="f-place" value="${esc(d.place)}" placeholder="ชื่อร้าน ห้าง"></div>
+      <div class="field" id="w-war"><label for="f-war">ประกันหมด</label><input id="f-war" type="date" value="${esc(d.warranty_until)}"></div>
+    </div>
+    <div class="field"><label for="f-note">จำไว้ว่า</label><input id="f-note" value="${esc(d.note)}" placeholder="เช่น ชั้น 3 โซน B"></div>
+    <p class="hint" id="remindLine"></p>
+    <div class="row-btns"><button class="btn" id="cancelRev">ยกเลิก</button><button class="btn pri" id="saveRev">บันทึก</button></div>
+  </div>`;
+  const sync=()=>{ const k=draft.kind;
+    $("#w-when").hidden=!(k==="appointment"||k==="bring"||k==="note");
+    $("#w-place").hidden=!(k==="appointment"||k==="location"||k==="note");
+    $("#w-war").hidden=k!=="document";
+    const t=remindAt({...draft,when:$("#f-when").value,warranty_until:$("#f-war").value});
+    $("#remindLine").textContent=k==="location"?"จะโชว์บนหน้าวันนี้ 1 วัน แล้วหายไปเอง (ยังค้นเจอ)":t?`จะเตือน ${fmtWhen(toLocal(new Date(t)))}${k==="appointment"?" (ก่อนนัด 1 ชม.)":k==="document"?" (ก่อนประกันหมด 30 วัน)":""}`:"ไม่มีเวลาเตือน เก็บไว้ค้นทีหลัง"; };
+  sync();
+  $("#kindPick").addEventListener("click",e=>{ const b=e.target.closest("[data-k]"); if(!b) return; draft.kind=b.dataset.k;
+    document.querySelectorAll("#kindPick .chip").forEach(c=>c.setAttribute("aria-pressed",c.dataset.k===draft.kind)); sync(); });
+  ["f-when","f-war"].forEach(i=>$("#"+i).addEventListener("input",sync));
+  $("#cancelRev").onclick=backToCapture;
+  $("#saveRev").onclick=async()=>{
+    const it={id:uid(),no:nextNo(),kind:draft.kind,title:$("#f-title").value.trim()||"เรื่องที่ฝากไว้",when:$("#w-when").hidden?"":$("#f-when").value,
+      place:$("#w-place").hidden?"":$("#f-place").value.trim(),note:$("#f-note").value.trim(),warranty_until:$("#w-war").hidden?"":$("#f-war").value,
+      tags:draft.tags||[],understood:draft.understood||"",raw:draft.raw||"",photo:draft.photo||"",created:Date.now(),done:false};
+    await store.save(it);
+    $("#txt").value=""; photoData=""; resetDrop(); backToCapture(); go("today");
+    toast(`ฝากไว้แล้ว ตั๋ว #${pad3(it.no)}`);
+  };
+}
+function backToCapture(){ $("#revStep").hidden=true; $("#revStep").innerHTML=""; $("#capStep").hidden=false; }
+
+/* ---------- notifications & push ---------- */
+let swReg=null;
+const pushId=()=>ls.get("fakjam.pushId",null);
+const pushReady=()=>!!pushId()||(ls.get("fakjam.localNotif",false)&&"Notification" in window&&Notification.permission==="granted");
+const isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent);
+const standalone=()=>matchMedia("(display-mode: standalone)").matches||navigator.standalone===true;
+function b64uToBytes(s){ s=s.replace(/-/g,"+").replace(/_/g,"/"); s+="===".slice((s.length+3)%4); const b=atob(s); return Uint8Array.from(b,c=>c.charCodeAt(0)); }
+
+async function writeSwConfig(){
+  try{ const c=await caches.open("fakjam-config"); await c.put("config",new Response(JSON.stringify({api:API,id:pushId(),token:CONFIG.APP_TOKEN||""}),{headers:{"content-type":"application/json"}})); }catch(e){}
+}
+async function enablePush(){
+  if(!("serviceWorker" in navigator)||!("Notification" in window)){
+    toast(isIOS&&!standalone()?"บน iPhone ต้องกดแชร์ → “เพิ่มไปยังหน้าจอโฮม” แล้วเปิดแอปจากไอคอนก่อน":"เบราว์เซอร์นี้ยังเปิดการเตือนไม่ได้"); return; }
+  const perm=await Notification.requestPermission();
+  if(perm!=="granted"){ toast("ยังไม่ได้อนุญาตการแจ้งเตือน เปิดได้ในตั้งค่าของเบราว์เซอร์"); return; }
+  const reg=swReg||await navigator.serviceWorker.ready;
+  if(!API||!CONFIG.VAPID_PUBLIC||!("PushManager" in window)){
+    ls.set("fakjam.localNotif",true); render(); openSettings();
+    toast("เปิดแล้ว แต่ยังเด้งได้เฉพาะตอนแอปเปิดอยู่ (ยังไม่ได้ตั้ง Worker)"); return; }
+  try{
+    let sub=await reg.pushManager.getSubscription();
+    if(!sub) sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64uToBytes(CONFIG.VAPID_PUBLIC)});
+    const r=await fetch(API+"/subscribe",{method:"POST",headers:headers(),body:JSON.stringify({id:pushId(),subscription:sub.toJSON()})});
+    if(!r.ok) throw new Error("HTTP "+r.status);
+    const j=await r.json(); ls.set("fakjam.pushId",j.id); ls.set("fakjam.localNotif",true);
+    await writeSwConfig(); await syncReminders(true);
+    render(); openSettings(); toast("เปิดการเตือนบนมือถือแล้ว");
+  }catch(e){ toast("ต่อระบบเตือนไม่สำเร็จ ตรวจ API และ VAPID ใน CONFIG"); }
+}
+async function disablePush(){
+  try{ const reg=swReg||await navigator.serviceWorker.ready; const sub=await reg.pushManager.getSubscription(); if(sub) await sub.unsubscribe(); }catch(e){}
+  if(API&&pushId()){ try{ await fetch(API+"/subscribe",{method:"DELETE",headers:headers(),body:JSON.stringify({id:pushId()})}); }catch(e){} }
+  ls.set("fakjam.pushId",null); ls.set("fakjam.localNotif",false); await writeSwConfig(); render(); openSettings(); toast("ปิดการเตือนแล้ว");
+}
+let syncT;
+function syncReminders(now){
+  clearTimeout(syncT);
+  const run=async()=>{
+    if(!API||!pushId()) return;
+    /* ส่งไปแค่ "เวลา" ที่ต้องปลุก — ชื่อเรื่องและรูปไม่ออกจากมือถือ */
+    const t0=Date.now()-5*6e4;
+    const times=[...new Set(store.items.filter(it=>!it.done).map(remindAt).filter(at=>at&&at>t0))].sort((a,b)=>a-b).slice(0,300);
+    try{ await fetch(API+"/reminders",{method:"PUT",headers:headers(),body:JSON.stringify({id:pushId(),times})}); }catch(e){}
+  };
+  if(now===true) return run();
+  syncT=setTimeout(run,1200);
+}
+/* while the app is open, remind in-page (and as a system notification if allowed) */
+const fired=new Set(ls.get("fakjam.fired",[]));
+async function tick(){
+  const now=Date.now();
+  for(const it of store.items){
+    if(it.done||fired.has(it.id+"@"+remindAt(it))) continue;
+    const t=remindAt(it); if(!(t&&t<=now&&now-t<15*6e4)) continue;
+    fired.add(it.id+"@"+t); ls.set("fakjam.fired",[...fired].slice(-200));
+    const n=notifText(it);
+    toast(n.title,{label:"ดู",fn:()=>openSheet(it.id)});
+    if(!pushId()&&ls.get("fakjam.localNotif",false)&&"Notification" in window&&Notification.permission==="granted"&&swReg){
+      try{ swReg.showNotification(n.title,{body:n.body,tag:it.id,icon:"icons/icon-192.png",badge:"icons/badge-96.png",data:{rid:it.id}}); }catch(e){}
+    }
+  }
+}
+
+/* ---------- install prompt ---------- */
+let installEvt=null;
+addEventListener("beforeinstallprompt",e=>{ e.preventDefault(); installEvt=e; });
+
+/* ---------- settings ---------- */
+$("#openSettings").addEventListener("click",openSettings);
+function openSettings(){
+  const p=pushId(), local=ls.get("fakjam.localNotif",false)&&"Notification" in window&&Notification.permission==="granted";
+  const n=store.items.length, withPhoto=store.items.filter(x=>x.photo).length;
+  const notifState=p?"เปิดอยู่ — เด้งเตือนแม้ไม่ได้เปิดแอป":local?"เปิดอยู่ — เด้งได้เฉพาะตอนแอปเปิด":"ปิดอยู่";
+  showSheet(`<div class="grab"></div>
+    <div class="trow" style="cursor:default"><h2 style="margin:0;font-size:20px">ตั้งค่า</h2><span class="btn ghost" data-close role="button" tabindex="0">ปิด</span></div>
+    <div class="set"><h3>การเตือนบนมือถือ</h3>
+      <div class="status"><span class="dot${p||local?" on":""}"></span>${notifState}</div>
+      ${API?`<p>ระบบเตือนรู้แค่ “เวลา” ที่ต้องปลุกมือถือ ชื่อเรื่อง รูป และโน้ตอยู่ในเครื่องนี้เท่านั้น</p>`:""}
+      ${isIOS&&!standalone()?`<p>บน iPhone ต้องกดปุ่มแชร์ → “เพิ่มไปยังหน้าจอโฮม” แล้วเปิดจากไอคอนก่อน จึงจะเปิดการเตือนได้ (iOS 16.4 ขึ้นไป)</p>`:""}
+      <div class="acts">${p||local?`<button class="btn" id="pushOff">ปิดการเตือน</button>`:`<button class="btn pri" id="pushOn">เปิดการเตือน</button>`}
+      ${p||local?`<button class="btn" id="pushTest">ทดสอบเตือน</button>`:""}</div>
+    </div>
+    <div class="set"><h3>การอ่านรูป</h3>
+      <div class="status"><span class="dot${API?" on":""}"></span>${API?"ต่อระบบอ่านรูปแล้ว":"ยังไม่ได้ต่อ — อ่านจากข้อความด้วยกติกาไทย"}</div>
+      <p>${API?"รูปและข้อความที่กด “ให้ช่วยอ่าน” จะถูกส่งไปอ่านแล้วส่งกลับ ไม่ได้เก็บไว้ที่เซิร์ฟเวอร์":"ใส่ API ของ Worker ในไฟล์ index.html (ดู README) เพื่อให้อ่านรูปแชต ใบเสร็จ ที่จอดรถได้"}</p>
+    </div>
+    ${installEvt&&!standalone()?`<div class="set"><h3>ติดตั้งลงหน้าจอ</h3><p>เปิดได้เหมือนแอป ไม่ต้องเข้าเว็บ</p><div class="acts"><button class="btn pri" id="installBtn">ติดตั้ง</button></div></div>`:""}
+    <div class="set"><h3>ข้อมูลของคุณ</h3>
+      <p>${n} ตั๋ว (มีรูป ${withPhoto}) เก็บอยู่ในมือถือเครื่องนี้เท่านั้น ถ้าล้างข้อมูลเบราว์เซอร์จะหาย ควรสำรองไว้บ้าง</p>
+      <div class="acts"><button class="btn" id="exportBtn">สำรองเป็นไฟล์</button><button class="btn" id="importBtn">นำเข้าไฟล์สำรอง</button></div>
+    </div>`,"settings");
+  const on=$("#pushOn"); if(on) on.onclick=enablePush;
+  const off=$("#pushOff"); if(off) off.onclick=disablePush;
+  const test=$("#pushTest"); if(test) test.onclick=testPush;
+  const ib=$("#installBtn"); if(ib) ib.onclick=async()=>{ installEvt.prompt(); await installEvt.userChoice.catch(()=>{}); installEvt=null; openSettings(); };
+  $("#exportBtn").onclick=exportData;
+  $("#importBtn").onclick=()=>$("#importFile").click();
+}
+async function testPush(){
+  if(API&&pushId()){
+    try{ const r=await fetch(API+"/test",{method:"POST",headers:headers(),body:JSON.stringify({id:pushId()})}); if(!r.ok) throw 0;
+      toast("ส่งแล้ว ลองปิดแอปรอสักครู่ ควรเด้งภายใน 1 นาที"); }catch(e){ toast("ส่งทดสอบไม่สำเร็จ ตรวจการตั้งค่า Worker"); }
+  } else if(swReg){ swReg.showNotification("ฝากจำ",{body:"การเตือนทำงานแล้ว",icon:"icons/icon-192.png"}); }
+}
+function exportData(){
+  const blob=new Blob([JSON.stringify({app:"fakjam",version:1,exported:new Date().toISOString(),items:store.items})],{type:"application/json"});
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=`fakjam-backup-${toLocal(new Date()).slice(0,10)}.json`;
+  document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},1000);
+}
+$("#importFile").addEventListener("change",async e=>{
+  const f=e.target.files[0]; e.target.value=""; if(!f) return;
+  try{ const j=JSON.parse(await f.text()); if(!j||!Array.isArray(j.items)) throw 0;
+    const clean=j.items.filter(x=>x&&x.id&&x.kind&&x.title);
+    const map=new Map(store.items.map(x=>[x.id,x])); clean.forEach(x=>map.set(x.id,x));
+    await store.replaceAll([...map.values()]); closeSheet(); toast(`นำเข้าแล้ว ${clean.length} ตั๋ว`);
+  }catch(err){ toast("ไฟล์นี้ไม่ใช่ไฟล์สำรองของฝากจำ"); }
+});
+
+/* ---------- open from notification link (#t-<id>) ---------- */
+function openFromHash(){ const m=location.hash.match(/^#t-(.+)$/); if(m){ go("today"); setTimeout(()=>openSheet(decodeURIComponent(m[1])),50); } }
+addEventListener("hashchange",openFromHash);
+if("serviceWorker" in navigator) navigator.serviceWorker.addEventListener("message",e=>{ if(e.data&&e.data.type==="open"&&e.data.rid) openSheet(e.data.rid); });
+
+/* ---------- boot ---------- */
+(async()=>{
+  render();
+  await store.init(); render(); openFromHash();
+  if("serviceWorker" in navigator){
+    try{ swReg=await navigator.serviceWorker.register("sw.js"); await writeSwConfig(); }catch(e){}
+  }
+  if(pushId()) syncReminders();
+  tick(); setInterval(tick,30000);
+  document.addEventListener("visibilitychange",()=>{ if(!document.hidden){ render(); tick(); } });
+})();
+})();
+</script>
+</body>
+</html>

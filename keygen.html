@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>สร้างกุญแจ VAPID — ฝากจำ</title>
+<style>
+  :root{--bg:#E9EEEC;--paper:#fff;--ink:#17232A;--muted:#5B6970;--line:#D3DCD9;--accent:#2B55CF}
+  @media (prefers-color-scheme:dark){:root{--bg:#10171B;--paper:#1A242A;--ink:#E6ECEE;--muted:#97A6AD;--line:#2E3C43;--accent:#86A2FF}}
+  body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 system-ui,-apple-system,"Segoe UI",Tahoma,sans-serif}
+  main{max-width:640px;margin:0 auto;padding:24px 16px;display:flex;flex-direction:column;gap:16px}
+  h1{margin:0;font-size:22px}
+  p{margin:0;color:var(--muted)}
+  .box{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:8px}
+  label{font-weight:600;font-size:14px}
+  textarea{width:100%;box-sizing:border-box;font:13px/1.4 ui-monospace,Menlo,monospace;border:1px solid var(--line);border-radius:8px;padding:10px;background:transparent;color:inherit;resize:vertical}
+  button{font:inherit;border:0;border-radius:999px;padding:10px 16px;background:var(--accent);color:#fff;font-weight:600;cursor:pointer;align-self:flex-start}
+  button.sec{background:transparent;color:var(--ink);border:1px solid var(--line);font-weight:500;padding:6px 12px}
+  .warn{color:#B4610E}
+</style>
+</head>
+<body>
+<main>
+  <h1>สร้างกุญแจ VAPID สำหรับฝากจำ</h1>
+  <p>เปิดไฟล์นี้ในเบราว์เซอร์บนคอมพิวเตอร์ (ดับเบิลคลิกได้เลย) กดปุ่มครั้งเดียว แล้วคัดลอกไปใส่ตามที่ README บอก กุญแจสร้างในเครื่องคุณ ไม่ได้ส่งไปไหน</p>
+  <button id="gen">สร้างกุญแจ</button>
+  <div class="box" id="out" hidden>
+    <label for="pub">Public key → ใส่ใน Worker (VAPID_PUBLIC) และใน index.html (CONFIG.VAPID_PUBLIC)</label>
+    <textarea id="pub" rows="3" readonly></textarea>
+    <button class="sec" data-copy="pub">คัดลอก</button>
+    <label for="priv">Private key → ใส่ใน Worker เป็น Secret ชื่อ VAPID_PRIVATE เท่านั้น</label>
+    <textarea id="priv" rows="2" readonly></textarea>
+    <button class="sec" data-copy="priv">คัดลอก</button>
+    <p class="warn">ห้ามใส่ Private key ลงใน index.html หรือ GitHub และถ้าสร้างใหม่ มือถือทุกเครื่องต้องกดเปิดการเตือนใหม่</p>
+  </div>
+  <p id="err" class="warn" hidden></p>
+</main>
+<script>
+const b64u=b=>btoa(String.fromCharCode(...new Uint8Array(b))).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
+document.getElementById("gen").onclick=async()=>{
+  try{
+    const kp=await crypto.subtle.generateKey({name:"ECDSA",namedCurve:"P-256"},true,["sign","verify"]);
+    const raw=await crypto.subtle.exportKey("raw",kp.publicKey);
+    const jwk=await crypto.subtle.exportKey("jwk",kp.privateKey);
+    document.getElementById("pub").value=b64u(raw);
+    document.getElementById("priv").value=jwk.d;
+    document.getElementById("out").hidden=false;
+  }catch(e){
+    const er=document.getElementById("err"); er.hidden=false;
+    er.textContent="เบราว์เซอร์นี้สร้างกุญแจไม่ได้ ลองเปิดด้วย Chrome หรือใช้คำสั่ง: npx web-push generate-vapid-keys";
+  }
+};
+document.querySelectorAll("[data-copy]").forEach(b=>b.onclick=async()=>{
+  const t=document.getElementById(b.dataset.copy);
+  try{ await navigator.clipboard.writeText(t.value); b.textContent="คัดลอกแล้ว"; }catch(e){ t.select(); }
+});
+</script>
+</body>
+</html>

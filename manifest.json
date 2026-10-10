@@ -1,0 +1,17 @@
+{
+  "name": "ฝากจำ",
+  "short_name": "ฝากจำ",
+  "description": "ไม่ต้องจำทุกเรื่อง แค่จำไว้ว่าฝากไว้ที่นี่",
+  "lang": "th",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#E9EEEC",
+  "theme_color": "#2B55CF",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

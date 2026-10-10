@@ -1,0 +1,22 @@
+# ใช้เฉพาะถ้าจะ deploy ด้วยคำสั่ง wrangler (ถ้าใช้หน้าเว็บ Cloudflare ไม่ต้องใช้ไฟล์นี้)
+name = "fakjam"
+main = "worker.js"
+compatibility_date = "2026-09-01"
+
+[[kv_namespaces]]
+binding = "KV"
+id = "ใส่_KV_namespace_id_ตรงนี้"
+
+[triggers]
+crons = ["* * * * *"]
+
+[vars]
+ALLOWED_ORIGIN = "https://YOURNAME.github.io"
+VAPID_SUBJECT = "mailto:you@example.com"
+VAPID_PUBLIC = "ใส่_Public_key_จาก_keygen.html"
+MODEL = "claude-sonnet-5-5"
+
+# Secrets ตั้งด้วยคำสั่ง (ห้ามใส่ในไฟล์นี้):
+#   npx wrangler secret put ANTHROPIC_API_KEY
+#   npx wrangler secret put VAPID_PRIVATE
+#   npx wrangler secret put APP_TOKEN        (ไม่บังคับ)
